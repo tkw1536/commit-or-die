@@ -1,0 +1,62 @@
+#!/usr/bin/env python2
+import argparse
+import random
+import sys
+import subprocess
+
+def write_file(filename, text):
+    """
+    Writes text to a file
+    """
+
+    # Write the text to file
+    text_file = open(filename, "w")
+    text_file.write(text)
+    text_file.close()
+
+    return True
+
+def read_file(filename):
+    """
+    Reads text from a file
+    """
+
+    # Read some text and then close the file
+    text_file = open(filename, "r")
+
+    try:
+        text = text_file.read()
+        text_file.close()
+    except UnicodeDecodeError:
+        text_file = open(filename, "r")
+        text = text_file.read()
+        text_file.close()
+
+    return text
+
+
+def main(args):
+
+    # clean all the things
+    subprocess.Popen("git clean -xdf", shell=True).wait()
+
+    # get a list of modified files
+    results = list(subprocess.Popen("git diff-tree --no-commit-id --name-only -r HEAD~1", shell=True, stdout=subprocess.PIPE).stdout.readlines())
+
+    # Randomly shuffle all the files
+    for f in results:
+        c = list(read_file(f.strip()))
+        random.shuffle(c)
+        write_file(f.strip(), ''.join(c))
+        subprocess.Popen("git add %s" % (f), shell=True)
+
+    # Ammend the commit
+    subprocess.Popen("git commit --amend --no-edit", shell=True).wait()
+
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Scramble the last git commit to force conflicts. ')
+
+    args = parser.parse_args()
+    main(sys.argv[1:])
